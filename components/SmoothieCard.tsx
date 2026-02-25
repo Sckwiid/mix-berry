@@ -10,6 +10,38 @@ interface SmoothieCardProps {
   onRate: (rating: number) => void;
 }
 
+const FRUIT_EMOJI_RULES = [
+  { terms: ["banane", "banana"], emoji: "🍌" },
+  { terms: ["fraise", "fraises", "strawberry"], emoji: "🍓" },
+  { terms: ["framboise", "framboises", "raspberry"], emoji: "🍓" },
+  { terms: ["myrtille", "myrtilles", "blueberry", "blueberries"], emoji: "🫐" },
+  { terms: ["mangue", "mango"], emoji: "🥭" },
+  { terms: ["ananas", "pineapple"], emoji: "🍍" },
+  { terms: ["kiwi"], emoji: "🥝" },
+  { terms: ["peche", "peaches", "peach"], emoji: "🍑" },
+  { terms: ["poire", "pear"], emoji: "🍐" },
+  { terms: ["pomme", "apple"], emoji: "🍏" },
+  { terms: ["orange"], emoji: "🍊" },
+  { terms: ["citron", "lemon", "lime"], emoji: "🍋" },
+  { terms: ["raisin", "grape"], emoji: "🍇" },
+  { terms: ["cerise", "cherry"], emoji: "🍒" },
+  { terms: ["pasteque", "watermelon"], emoji: "🍉" },
+  { terms: ["melon", "cantaloup"], emoji: "🍈" },
+  { terms: ["coco", "coconut"], emoji: "🥥" },
+  { terms: ["avocat", "avocado"], emoji: "🥑" }
+] as const;
+
+const NOISY_INGREDIENT_TERMS = [
+  "cube",
+  "cubes",
+  "glace",
+  "glacons",
+  "glaçons",
+  "ice",
+  "water",
+  "eau"
+];
+
 function mediaGradient(seed: string) {
   const code = [...seed].reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const hueA = code % 360;
@@ -40,12 +72,61 @@ function compactSourceLabel(source: string) {
   return source.replace(/\s+/g, " ").trim();
 }
 
+function normalizeIngredient(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function isNoisyIngredient(value: string) {
+  const normalized = normalizeIngredient(value);
+  return NOISY_INGREDIENT_TERMS.some((term) => normalized === term || normalized.includes(`${term} `) || normalized.includes(` ${term}`));
+}
+
+function getFruitEmoji(value: string) {
+  const normalized = normalizeIngredient(value);
+  for (const rule of FRUIT_EMOJI_RULES) {
+    if (rule.terms.some((term) => normalized.includes(term))) {
+      return rule.emoji;
+    }
+  }
+  return null;
+}
+
+function getFruitEmojiBadges(ingredients: string[]) {
+  const seenEmojis = new Set<string>();
+  const badges: Array<{ emoji: string; label: string }> = [];
+
+  for (const ingredient of ingredients) {
+    if (isNoisyIngredient(ingredient)) {
+      continue;
+    }
+    const emoji = getFruitEmoji(ingredient);
+    if (!emoji || seenEmojis.has(emoji)) {
+      continue;
+    }
+    seenEmojis.add(emoji);
+    badges.push({ emoji, label: ingredient });
+    if (badges.length >= 4) {
+      break;
+    }
+  }
+
+  return badges;
+}
+
 export function SmoothieCard({ item, localRating, onRate }: SmoothieCardProps) {
   const primaryTag = pickLabel(item);
-  const ingredientPreview = item.ingredients.slice(0, 3).join(" • ");
-  const heroIngredients = item.ingredients.slice(0, 3);
-  const bodyIngredients = item.ingredients.slice(0, 2);
-  const extraIngredientCount = Math.max(0, item.ingredients.length - bodyIngredients.length);
+  const cleanIngredients = item.ingredients.filter((ingredient) => !isNoisyIngredient(ingredient));
+  const ingredientPreview = cleanIngredients.slice(0, 3).join(" • ");
+  const fruitEmojiBadges = getFruitEmojiBadges(item.ingredients);
+  const heroFruitLabel = fruitEmojiBadges[0]?.label ?? "Smoothie";
+  const heroSymbol = fruitEmojiBadges[0]?.emoji ?? "🍹";
+  const bodyIngredientsSource = cleanIngredients;
+  const bodyIngredients = bodyIngredientsSource.slice(0, 2);
+  const extraIngredientCount = Math.max(0, bodyIngredientsSource.length - bodyIngredients.length);
   const sourceLabel = compactSourceLabel(item.source);
 
   return (
@@ -73,14 +154,18 @@ export function SmoothieCard({ item, localRating, onRate }: SmoothieCardProps) {
                 <i className="smCardOrb smCardOrbB" />
                 <i className="smCardOrb smCardOrbC" />
               </div>
-              <p className="smCardMediaKicker">{primaryTag ?? "Recette smoothie"}</p>
-              <span>{item.title.slice(0, 1).toUpperCase()}</span>
-              <small>{heroIngredients[0] ?? "Smoothie"}</small>
-              {heroIngredients.length > 0 ? (
+              <span>{heroSymbol}</span>
+              <small>{heroFruitLabel}</small>
+              {fruitEmojiBadges.length > 0 ? (
                 <div className="smCardMediaChips">
-                  {heroIngredients.map((ingredient) => (
-                    <span key={ingredient} className="smCardMediaChip">
-                      {ingredient}
+                  {fruitEmojiBadges.map((badge, index) => (
+                    <span
+                      key={`${badge.emoji}-${badge.label}-${index}`}
+                      className="smCardMediaChip"
+                      title={badge.label}
+                      aria-label={badge.label}
+                    >
+                      {badge.emoji}
                     </span>
                   ))}
                 </div>

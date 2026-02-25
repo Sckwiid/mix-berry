@@ -144,12 +144,9 @@ export function VirtualSmoothieGrid({
     }
   }
 
-  const loadedInfo = total > 0 ? `${items.length.toLocaleString("fr-FR")} / ${total.toLocaleString("fr-FR")}` : "0";
-
   return (
     <section className="vgShell">
       <div className="vgHeader">
-        <span>{loadedInfo} smoothies chargés</span>
         <span>{hasMore ? "Scroll infini actif" : "Fin de la liste"}</span>
       </div>
 
