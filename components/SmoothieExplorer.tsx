@@ -205,6 +205,15 @@ export function SmoothieExplorer({ meta }: SmoothieExplorerProps) {
             Affichage aléatoire, scroll infini optimisé (grille virtualisée), recherche par nom ou ingrédient,
             exclusions rapides et tri par note (vos votes d’abord).
           </p>
+          <div className="heroPillRow" aria-label="Points forts">
+            <span className="heroPill">Scroll infini fluide</span>
+            <span className="heroPill">Recherche nom + ingrédients</span>
+            <span className="heroPill">Filtres d’exclusion</span>
+            <span className="heroPill">Notes locales</span>
+            {meta.withImages === 0 ? (
+              <span className="heroPill heroPillAccent">Mode sans photos optimisé</span>
+            ) : null}
+          </div>
         </div>
         <div className="heroStats">
           <div className="statCard">

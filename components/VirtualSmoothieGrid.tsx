@@ -18,7 +18,7 @@ interface VirtualSmoothieGridProps {
 
 const GAP = 16;
 const MIN_CARD_WIDTH = 280;
-const CARD_HEIGHT = 360;
+const CARD_HEIGHT = 392;
 const OVERSCAN_ROWS = 3;
 
 export function VirtualSmoothieGrid({

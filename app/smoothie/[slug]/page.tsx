@@ -40,8 +40,23 @@ export default async function SmoothieDetailPage({
               <img src={smoothie.imageUrl} alt={smoothie.title} loading="eager" decoding="async" />
             ) : (
               <div className="recipeMediaPlaceholder">
+                <div className="recipeMediaDecor" aria-hidden="true">
+                  <i className="recipeMediaOrb recipeMediaOrbA" />
+                  <i className="recipeMediaOrb recipeMediaOrbB" />
+                  <i className="recipeMediaOrb recipeMediaOrbC" />
+                </div>
+                <p className="recipeMediaKicker">Illustration générée à partir des ingrédients</p>
                 <span>{smoothie.title.slice(0, 1).toUpperCase()}</span>
                 <small>{smoothie.ingredients.slice(0, 2).join(" • ") || "Sans photo dans le dataset"}</small>
+                {smoothie.ingredients.length > 0 ? (
+                  <div className="recipeMediaChips">
+                    {smoothie.ingredients.slice(0, 4).map((ingredient) => (
+                      <span key={ingredient} className="recipeMediaChip">
+                        {ingredient}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             )}
           </div>
