@@ -8,6 +8,8 @@ interface SmoothieCardProps {
   item: SmoothieListItem;
   localRating: number;
   onRate: (rating: number) => void;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
 }
 
 const FRUIT_EMOJI_RULES = [
@@ -117,7 +119,13 @@ function getFruitEmojiBadges(ingredients: string[]) {
   return badges;
 }
 
-export function SmoothieCard({ item, localRating, onRate }: SmoothieCardProps) {
+export function SmoothieCard({
+  item,
+  localRating,
+  onRate,
+  isFavorite,
+  onToggleFavorite
+}: SmoothieCardProps) {
   const primaryTag = pickLabel(item);
   const cleanIngredients = item.ingredients.filter((ingredient) => !isNoisyIngredient(ingredient));
   const ingredientPreview = cleanIngredients.slice(0, 3).join(" • ");
@@ -210,7 +218,20 @@ export function SmoothieCard({ item, localRating, onRate }: SmoothieCardProps) {
           <RatingStars value={localRating} onChange={onRate} size="sm" compact />
           <span className="smRatingText">{localRating > 0 ? `Votre note: ${localRating}/5` : "Noter"}</span>
         </div>
-        <span className="smMeta">Score {Math.round(item.popularityScore)}</span>
+        <div className="smCardActions">
+          <span className="smMeta">Score {Math.round(item.popularityScore)}</span>
+          <button
+            type="button"
+            className={`smFavoriteButton ${isFavorite ? "isActive" : ""}`}
+            aria-label={isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+            aria-pressed={isFavorite}
+            onClick={onToggleFavorite}
+            title={isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+          >
+            <span aria-hidden="true">{isFavorite ? "♥" : "♡"}</span>
+            <span>{isFavorite ? "Favori" : "Favoris"}</span>
+          </button>
+        </div>
       </div>
     </article>
   );

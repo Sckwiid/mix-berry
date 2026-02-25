@@ -6,6 +6,7 @@ import type { DatasetMeta, ExclusionPresetKey, SmoothieListItem, SmoothieListRes
 
 import { SmoothieCard } from "@/components/SmoothieCard";
 import { VirtualSmoothieGrid } from "@/components/VirtualSmoothieGrid";
+import { useLocalFavorites } from "@/components/useLocalFavorites";
 import { useLocalRatings } from "@/components/useLocalRatings";
 
 interface SmoothieExplorerProps {
@@ -13,6 +14,7 @@ interface SmoothieExplorerProps {
 }
 
 const PAGE_SIZE = 24;
+type LibraryView = "all" | "rated" | "favorites";
 
 function randomSeed() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
@@ -28,6 +30,8 @@ function buildListKey(input: {
   excludeIngredients: string[];
   sort: SortKey;
   seed: string;
+  libraryView: LibraryView;
+  scopedIds: string[];
 }) {
   return JSON.stringify(input);
 }
@@ -40,6 +44,7 @@ export function SmoothieExplorer({ meta }: SmoothieExplorerProps) {
   const [excludeIngredients, setExcludeIngredients] = useState<string[]>([]);
   const [showExclusions, setShowExclusions] = useState(false);
   const [seed, setSeed] = useState(randomSeed);
+  const [libraryView, setLibraryView] = useState<LibraryView>("all");
 
   const [items, setItems] = useState<SmoothieListItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -53,6 +58,23 @@ export function SmoothieExplorer({ meta }: SmoothieExplorerProps) {
   const mountedRef = useRef(true);
 
   const { ratings, ready: ratingsReady, setRating } = useLocalRatings();
+  const { favoriteIds, ready: favoritesReady, toggleFavorite } = useLocalFavorites();
+
+  const ratedIds = useMemo(
+    () => Object.entries(ratings).filter(([, rating]) => rating > 0).map(([id]) => id).sort(),
+    [ratings]
+  );
+  const favoriteIdsSorted = useMemo(() => [...favoriteIds].sort(), [favoriteIds]);
+  const favoriteSet = useMemo(() => new Set(favoriteIds), [favoriteIds]);
+  const libraryScopedIds = useMemo(() => {
+    if (libraryView === "rated") {
+      return ratedIds;
+    }
+    if (libraryView === "favorites") {
+      return favoriteIdsSorted;
+    }
+    return [];
+  }, [favoriteIdsSorted, libraryView, ratedIds]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -68,9 +90,11 @@ export function SmoothieExplorer({ meta }: SmoothieExplorerProps) {
       excludePresets: [...excludePresets].sort(),
       excludeIngredients: [...excludeIngredients].sort(),
       sort,
-      seed
+      seed,
+      libraryView,
+      scopedIds: libraryScopedIds
     }),
-    [deferredQuery, excludePresets, excludeIngredients, sort, seed]
+    [deferredQuery, excludePresets, excludeIngredients, sort, seed, libraryView, libraryScopedIds]
   );
 
   const listKey = useMemo(() => buildListKey(filterState), [filterState]);
@@ -96,6 +120,9 @@ export function SmoothieExplorer({ meta }: SmoothieExplorerProps) {
       params.set("limit", String(PAGE_SIZE));
       params.set("sort", filterState.sort);
       params.set("seed", filterState.seed);
+      if (filterState.libraryView !== "all" && filterState.scopedIds.length > 0) {
+        params.set("ids", joinCsv(filterState.scopedIds));
+      }
       if (filterState.q) {
         params.set("q", filterState.q);
       }
@@ -142,6 +169,16 @@ export function SmoothieExplorer({ meta }: SmoothieExplorerProps) {
   }
 
   useEffect(() => {
+    if (filterState.libraryView !== "all" && filterState.scopedIds.length === 0) {
+      abortRef.current?.abort();
+      setItems([]);
+      setTotal(0);
+      setNextOffset(null);
+      setIsLoading(false);
+      setIsLoadingMore(false);
+      setError(null);
+      return;
+    }
     setItems([]);
     setNextOffset(0);
     void fetchPage(0, true);
@@ -168,6 +205,8 @@ export function SmoothieExplorer({ meta }: SmoothieExplorerProps) {
   }, [items, ratings, sort]);
 
   const selectedExclusionsCount = excludePresets.length + excludeIngredients.length;
+  const notesCount = ratedIds.length;
+  const favoritesCount = favoriteIds.length;
 
   const togglePreset = (preset: ExclusionPresetKey) => {
     startTransition(() => {
@@ -191,6 +230,7 @@ export function SmoothieExplorer({ meta }: SmoothieExplorerProps) {
       setSort("random");
       setExcludePresets([]);
       setExcludeIngredients([]);
+      setLibraryView("all");
       setSeed(randomSeed());
     });
   };
@@ -216,18 +256,37 @@ export function SmoothieExplorer({ meta }: SmoothieExplorerProps) {
           </div>
         </div>
         <div className="heroStats">
-          <div className="statCard">
+          <button
+            type="button"
+            className={`statCard statCardButton ${libraryView === "all" ? "isActive" : ""}`}
+            onClick={() => setLibraryView("all")}
+            aria-pressed={libraryView === "all"}
+          >
             <span className="statLabel">Recettes</span>
             <strong>{meta.total.toLocaleString("fr-FR")}</strong>
-          </div>
+          </button>
           <div className="statCard">
             <span className="statLabel">Photos dataset</span>
             <strong>{meta.withImages.toLocaleString("fr-FR")}</strong>
           </div>
-          <div className="statCard">
-            <span className="statLabel">Notes</span>
-            <strong>{ratingsReady ? Object.keys(ratings).length : 0}</strong>
-          </div>
+          <button
+            type="button"
+            className={`statCard statCardButton ${libraryView === "rated" ? "isActive" : ""}`}
+            onClick={() => setLibraryView((current) => (current === "rated" ? "all" : "rated"))}
+            aria-pressed={libraryView === "rated"}
+          >
+            <span className="statLabel">Notes personnelles</span>
+            <strong>{ratingsReady ? notesCount : 0}</strong>
+          </button>
+          <button
+            type="button"
+            className={`statCard statCardButton ${libraryView === "favorites" ? "isActive" : ""}`}
+            onClick={() => setLibraryView((current) => (current === "favorites" ? "all" : "favorites"))}
+            aria-pressed={libraryView === "favorites"}
+          >
+            <span className="statLabel">Favoris</span>
+            <strong>{favoritesReady ? favoritesCount : 0}</strong>
+          </button>
         </div>
       </section>
 
@@ -320,11 +379,6 @@ export function SmoothieExplorer({ meta }: SmoothieExplorerProps) {
           </div>
         ) : null}
 
-        <p className="controlsHint">
-          {meta.withImages === 0
-            ? "Le CSV fourni ne contient pas de colonne image exploitable: des placeholders propres sont affichés."
-            : "Les photos sont affichées quand elles sont présentes dans le dataset."}
-        </p>
       </section>
 
       <VirtualSmoothieGrid
@@ -346,6 +400,8 @@ export function SmoothieExplorer({ meta }: SmoothieExplorerProps) {
             item={item}
             localRating={ratings[item.id] ?? 0}
             onRate={(rating) => setRating(item.id, rating)}
+            isFavorite={favoriteSet.has(item.id)}
+            onToggleFavorite={() => toggleFavorite(item.id)}
           />
         )}
       />

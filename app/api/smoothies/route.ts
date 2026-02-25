@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
     q: params.get("q") ?? undefined,
     excludeIngredients: parseCsvParam(params.get("excludeIngredients")),
     excludePresets,
+    includeIds: parseCsvParam(params.get("ids")),
     sort,
     seed: params.get("seed") ?? undefined,
     offset: params.get("offset") ? Number(params.get("offset")) : 0,

@@ -681,6 +681,7 @@ export interface QueryOptions {
   q?: string;
   excludeIngredients?: string[];
   excludePresets?: ExclusionPresetKey[];
+  includeIds?: string[];
   sort?: SortKey;
   seed?: string;
   offset?: number;
@@ -693,12 +694,17 @@ export async function querySmoothies(options: QueryOptions = {}): Promise<Smooth
   const searchTerms = normalizeForSearch(q).split(/\s+/).filter(Boolean);
   const excludeIngredients = new Set((options.excludeIngredients || []).map((value) => slugify(value)));
   const excludePresets = new Set(options.excludePresets || []);
+  const includeIds = new Set((options.includeIds || []).map((value) => String(value).trim()).filter(Boolean));
   const sort: SortKey = options.sort || "random";
   const seed = options.seed && options.seed.trim() ? options.seed.trim() : "seed";
   const offset = Math.max(0, Math.trunc(options.offset ?? 0));
   const limit = clampLimit(options.limit);
 
   let filtered = cache.items;
+
+  if (includeIds.size > 0) {
+    filtered = filtered.filter((item) => includeIds.has(item.id));
+  }
 
   if (searchTerms.length > 0) {
     filtered = filtered.filter((item) => searchTerms.every((term) => item.searchBlob.includes(term)));
