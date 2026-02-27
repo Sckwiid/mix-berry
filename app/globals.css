@@ -953,6 +953,19 @@ select {
   display: block;
 }
 
+.recipeMediaBadge {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  font-size: 0.75rem;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(8px);
+  z-index: 3;
+}
+
 .recipeMediaPlaceholder {
   position: absolute;
   inset: 0;

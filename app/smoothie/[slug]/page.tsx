@@ -1,15 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { RecipeHeroMedia } from "@/components/RecipeHeroMedia";
 import { RecipeRating } from "@/components/RecipeRating";
 import { getSmoothieBySlug } from "@/lib/dataset";
-
-function heroGradient(seed: string) {
-  const code = [...seed].reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const hueA = code % 360;
-  const hueB = (code * 2.3 + 80) % 360;
-  return `linear-gradient(135deg, hsl(${hueA} 75% 90%), hsl(${hueB} 66% 82%))`;
-}
 
 export default async function SmoothieDetailPage({
   params
@@ -32,34 +26,12 @@ export default async function SmoothieDetailPage({
         </Link>
 
         <section className="recipeHero">
-          <div
-            className="recipeMedia"
-            style={!smoothie.imageUrl ? { background: heroGradient(smoothie.id) } : undefined}
-          >
-            {smoothie.imageUrl ? (
-              <img src={smoothie.imageUrl} alt={smoothie.title} loading="eager" decoding="async" />
-            ) : (
-              <div className="recipeMediaPlaceholder">
-                <div className="recipeMediaDecor" aria-hidden="true">
-                  <i className="recipeMediaOrb recipeMediaOrbA" />
-                  <i className="recipeMediaOrb recipeMediaOrbB" />
-                  <i className="recipeMediaOrb recipeMediaOrbC" />
-                </div>
-                <p className="recipeMediaKicker">Illustration générée à partir des ingrédients</p>
-                <span>{smoothie.title.slice(0, 1).toUpperCase()}</span>
-                <small>{smoothie.ingredients.slice(0, 2).join(" • ") || "Sans photo dans le dataset"}</small>
-                {smoothie.ingredients.length > 0 ? (
-                  <div className="recipeMediaChips">
-                    {smoothie.ingredients.slice(0, 4).map((ingredient) => (
-                      <span key={ingredient} className="recipeMediaChip">
-                        {ingredient}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            )}
-          </div>
+          <RecipeHeroMedia
+            id={smoothie.id}
+            title={smoothie.title}
+            ingredients={smoothie.ingredients}
+            imageUrl={smoothie.imageUrl}
+          />
 
           <div className="recipeHeroContent">
             <p className="eyebrow">Recette</p>

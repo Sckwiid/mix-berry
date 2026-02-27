@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { SmoothieListItem } from "@/lib/types";
 
 import { RatingStars } from "@/components/RatingStars";
+import { useSuggestedImage } from "@/components/useSuggestedImage";
 
 interface SmoothieCardProps {
   item: SmoothieListItem;
@@ -126,6 +127,14 @@ export function SmoothieCard({
   isFavorite,
   onToggleFavorite
 }: SmoothieCardProps) {
+  const media = useSuggestedImage({
+    id: item.id,
+    title: item.title,
+    tags: item.ingredients,
+    imageUrl: item.imageUrl,
+    enabled: true
+  });
+
   const primaryTag = pickLabel(item);
   const cleanIngredients = item.ingredients.filter((ingredient) => !isNoisyIngredient(ingredient));
   const ingredientPreview = cleanIngredients.slice(0, 3).join(" • ");
@@ -136,18 +145,26 @@ export function SmoothieCard({
   const bodyIngredients = bodyIngredientsSource.slice(0, 2);
   const extraIngredientCount = Math.max(0, bodyIngredientsSource.length - bodyIngredients.length);
   const sourceLabel = compactSourceLabel(item.source);
+  const mediaBadgeLabel =
+    media.source === "dataset"
+      ? "Photo"
+      : media.source === "suggested"
+        ? "Photo suggérée"
+        : media.isLoading
+          ? "Recherche image..."
+          : "Sans photo";
 
   return (
     <article className="smCard">
       <Link href={`/smoothie/${item.slug}`} className="smCardLink" prefetch={false}>
         <div
-          className={`smCardMedia ${item.imageUrl ? "hasPhoto" : "isIllustrated"}`}
-          style={!item.imageUrl ? { background: mediaGradient(item.id) } : undefined}
+          className={`smCardMedia ${media.imageUrl ? "hasPhoto" : "isIllustrated"}`}
+          style={!media.imageUrl ? { background: mediaGradient(item.id) } : undefined}
         >
-          {item.imageUrl ? (
+          {media.imageUrl ? (
             <>
               <img
-                src={item.imageUrl}
+                src={media.imageUrl}
                 alt={item.title}
                 loading="lazy"
                 decoding="async"
@@ -180,7 +197,7 @@ export function SmoothieCard({
               ) : null}
             </div>
           )}
-          <div className="smCardMediaBadge">{item.hasImage ? "Photo" : "Sans photo"}</div>
+          <div className="smCardMediaBadge">{mediaBadgeLabel}</div>
         </div>
 
         <div className="smCardBody">
