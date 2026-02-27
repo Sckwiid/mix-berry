@@ -1,6 +1,10 @@
+"use client";
+
+import { useEffect } from "react";
 import Link from "next/link";
 
 import type { SmoothieListItem } from "@/lib/types";
+import { getFruitEmojiBadges, isNoisyIngredient } from "@/lib/fruit-emoji";
 
 import { RatingStars } from "@/components/RatingStars";
 import { useSuggestedImage } from "@/components/useSuggestedImage";
@@ -10,40 +14,10 @@ interface SmoothieCardProps {
   localRating: number;
   onRate: (rating: number) => void;
   isFavorite: boolean;
+  isRated: boolean;
+  onImageStatusChange?: (id: string, hasImage: boolean) => void;
   onToggleFavorite: () => void;
 }
-
-const FRUIT_EMOJI_RULES = [
-  { terms: ["banane", "banana"], emoji: "🍌" },
-  { terms: ["fraise", "fraises", "strawberry"], emoji: "🍓" },
-  { terms: ["framboise", "framboises", "raspberry"], emoji: "🍓" },
-  { terms: ["myrtille", "myrtilles", "blueberry", "blueberries"], emoji: "🫐" },
-  { terms: ["mangue", "mango"], emoji: "🥭" },
-  { terms: ["ananas", "pineapple"], emoji: "🍍" },
-  { terms: ["kiwi"], emoji: "🥝" },
-  { terms: ["peche", "peaches", "peach"], emoji: "🍑" },
-  { terms: ["poire", "pear"], emoji: "🍐" },
-  { terms: ["pomme", "apple"], emoji: "🍏" },
-  { terms: ["orange"], emoji: "🍊" },
-  { terms: ["citron", "lemon", "lime"], emoji: "🍋" },
-  { terms: ["raisin", "grape"], emoji: "🍇" },
-  { terms: ["cerise", "cherry"], emoji: "🍒" },
-  { terms: ["pasteque", "watermelon"], emoji: "🍉" },
-  { terms: ["melon", "cantaloup"], emoji: "🍈" },
-  { terms: ["coco", "coconut"], emoji: "🥥" },
-  { terms: ["avocat", "avocado"], emoji: "🥑" }
-] as const;
-
-const NOISY_INGREDIENT_TERMS = [
-  "cube",
-  "cubes",
-  "glace",
-  "glacons",
-  "glaçons",
-  "ice",
-  "water",
-  "eau"
-];
 
 function mediaGradient(seed: string) {
   const code = [...seed].reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -75,56 +49,19 @@ function compactSourceLabel(source: string) {
   return source.replace(/\s+/g, " ").trim();
 }
 
-function normalizeIngredient(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
-}
-
-function isNoisyIngredient(value: string) {
-  const normalized = normalizeIngredient(value);
-  return NOISY_INGREDIENT_TERMS.some((term) => normalized === term || normalized.includes(`${term} `) || normalized.includes(` ${term}`));
-}
-
-function getFruitEmoji(value: string) {
-  const normalized = normalizeIngredient(value);
-  for (const rule of FRUIT_EMOJI_RULES) {
-    if (rule.terms.some((term) => normalized.includes(term))) {
-      return rule.emoji;
-    }
-  }
-  return null;
-}
-
-function getFruitEmojiBadges(ingredients: string[]) {
-  const seenEmojis = new Set<string>();
-  const badges: Array<{ emoji: string; label: string }> = [];
-
-  for (const ingredient of ingredients) {
-    if (isNoisyIngredient(ingredient)) {
-      continue;
-    }
-    const emoji = getFruitEmoji(ingredient);
-    if (!emoji || seenEmojis.has(emoji)) {
-      continue;
-    }
-    seenEmojis.add(emoji);
-    badges.push({ emoji, label: ingredient });
-    if (badges.length >= 4) {
-      break;
-    }
-  }
-
-  return badges;
-}
+const DEFAULT_LOADING_BADGES = [
+  { emoji: "🍓", label: "fraise" },
+  { emoji: "🍌", label: "banane" },
+  { emoji: "🍍", label: "ananas" }
+];
 
 export function SmoothieCard({
   item,
   localRating,
   onRate,
   isFavorite,
+  isRated,
+  onImageStatusChange,
   onToggleFavorite
 }: SmoothieCardProps) {
   const media = useSuggestedImage({
@@ -145,6 +82,12 @@ export function SmoothieCard({
   const bodyIngredients = bodyIngredientsSource.slice(0, 2);
   const extraIngredientCount = Math.max(0, bodyIngredientsSource.length - bodyIngredients.length);
   const sourceLabel = compactSourceLabel(item.source);
+  const visualEmojiBadges =
+    fruitEmojiBadges.length > 0
+      ? fruitEmojiBadges
+      : media.isLoading
+        ? DEFAULT_LOADING_BADGES
+        : [];
   const mediaBadgeLabel =
     media.source === "dataset"
       ? "Photo"
@@ -154,8 +97,13 @@ export function SmoothieCard({
           ? "Recherche image..."
           : "Sans photo";
 
+  useEffect(() => {
+    onImageStatusChange?.(item.id, media.source !== "none");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item.id, media.source]);
+
   return (
-    <article className="smCard">
+    <article className={`smCard ${isFavorite ? "isFavorite" : ""} ${isRated ? "isRated" : ""}`}>
       <Link href={`/smoothie/${item.slug}`} className="smCardLink" prefetch={false}>
         <div
           className={`smCardMedia ${media.imageUrl ? "hasPhoto" : "isIllustrated"}`}
@@ -181,9 +129,9 @@ export function SmoothieCard({
               </div>
               <span>{heroSymbol}</span>
               <small>{heroFruitLabel}</small>
-              {fruitEmojiBadges.length > 0 ? (
+              {visualEmojiBadges.length > 0 ? (
                 <div className="smCardMediaChips">
-                  {fruitEmojiBadges.map((badge, index) => (
+                  {visualEmojiBadges.map((badge, index) => (
                     <span
                       key={`${badge.emoji}-${badge.label}-${index}`}
                       className="smCardMediaChip"

@@ -499,6 +499,15 @@ select {
   border-color: rgba(42, 34, 23, 0.14);
 }
 
+.smCard.isFavorite {
+  border-color: rgba(225, 91, 114, 0.32);
+  box-shadow: 0 14px 30px rgba(225, 91, 114, 0.12);
+}
+
+.smCard.isRated {
+  border-color: rgba(228, 155, 50, 0.3);
+}
+
 .smCardLink {
   display: grid;
   grid-template-rows: 168px auto;
@@ -1056,6 +1065,16 @@ select {
   border: 1px solid rgba(255, 255, 255, 0.44);
   background: rgba(255, 255, 255, 0.62);
   backdrop-filter: blur(6px);
+}
+
+.recipeMediaChipEmoji {
+  justify-content: center;
+  width: 38px;
+  min-height: 38px;
+  padding: 0;
+  border-radius: 999px;
+  font-size: 1.08rem;
+  line-height: 1;
 }
 
 .recipeHeroContent {

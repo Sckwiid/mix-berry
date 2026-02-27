@@ -1,6 +1,7 @@
 "use client";
 
 import { useSuggestedImage } from "@/components/useSuggestedImage";
+import { getFruitEmojiBadges } from "@/lib/fruit-emoji";
 
 interface RecipeHeroMediaProps {
   id: string;
@@ -33,6 +34,18 @@ export function RecipeHeroMedia({ id, title, ingredients, imageUrl }: RecipeHero
         : media.isLoading
           ? "Recherche image..."
           : "Sans photo";
+  const fruitEmojiBadges = getFruitEmojiBadges(ingredients, 4);
+  const placeholderEmojiBadges =
+    fruitEmojiBadges.length > 0
+      ? fruitEmojiBadges
+      : media.isLoading
+        ? [
+            { emoji: "🍓", label: "fraise" },
+            { emoji: "🍌", label: "banane" },
+            { emoji: "🍍", label: "ananas" },
+            { emoji: "🥭", label: "mangue" }
+          ]
+        : [];
 
   return (
     <div className="recipeMedia" style={!media.imageUrl ? { background: heroGradient(id) } : undefined}>
@@ -48,11 +61,16 @@ export function RecipeHeroMedia({ id, title, ingredients, imageUrl }: RecipeHero
           <p className="recipeMediaKicker">Illustration générée à partir des ingrédients</p>
           <span>{title.slice(0, 1).toUpperCase()}</span>
           <small>{ingredients.slice(0, 2).join(" • ") || "Sans photo dans le dataset"}</small>
-          {ingredients.length > 0 ? (
+          {placeholderEmojiBadges.length > 0 ? (
             <div className="recipeMediaChips">
-              {ingredients.slice(0, 4).map((ingredient) => (
-                <span key={ingredient} className="recipeMediaChip">
-                  {ingredient}
+              {placeholderEmojiBadges.map((badge, index) => (
+                <span
+                  key={`${badge.emoji}-${badge.label}-${index}`}
+                  className="recipeMediaChip recipeMediaChipEmoji"
+                  title={badge.label}
+                  aria-label={badge.label}
+                >
+                  {badge.emoji}
                 </span>
               ))}
             </div>
@@ -63,4 +81,3 @@ export function RecipeHeroMedia({ id, title, ingredients, imageUrl }: RecipeHero
     </div>
   );
 }
-

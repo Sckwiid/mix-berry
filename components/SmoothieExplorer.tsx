@@ -49,6 +49,7 @@ export function SmoothieExplorer({ meta }: SmoothieExplorerProps) {
   const [items, setItems] = useState<SmoothieListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [nextOffset, setNextOffset] = useState<number | null>(0);
+  const [resolvedImageIds, setResolvedImageIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -174,6 +175,7 @@ export function SmoothieExplorer({ meta }: SmoothieExplorerProps) {
       setItems([]);
       setTotal(0);
       setNextOffset(null);
+      setResolvedImageIds(new Set());
       setIsLoading(false);
       setIsLoadingMore(false);
       setError(null);
@@ -181,28 +183,54 @@ export function SmoothieExplorer({ meta }: SmoothieExplorerProps) {
     }
     setItems([]);
     setNextOffset(0);
+    setResolvedImageIds(new Set());
     void fetchPage(0, true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listKey]);
 
   const displayItems = useMemo(() => {
-    if (sort !== "rating") {
-      return items;
-    }
-
     const sorted = [...items];
+    const getPriorityBoost = (item: SmoothieListItem) => {
+      let boost = 0;
+      if (item.hasImage || resolvedImageIds.has(item.id)) {
+        boost += 40;
+      }
+      const personalRating = ratings[item.id] ?? 0;
+      if (personalRating > 0) {
+        boost += 70 + personalRating * 8;
+      }
+      if (favoriteSet.has(item.id)) {
+        boost += 115;
+      }
+      return boost;
+    };
+
     sorted.sort((a, b) => {
-      const ratingDiff = (ratings[b.id] ?? 0) - (ratings[a.id] ?? 0);
-      if (ratingDiff !== 0) {
-        return ratingDiff;
+      const priorityDiff = getPriorityBoost(b) - getPriorityBoost(a);
+      if (priorityDiff !== 0) {
+        return priorityDiff;
       }
-      if (b.popularityScore !== a.popularityScore) {
-        return b.popularityScore - a.popularityScore;
+
+      if (sort === "rating") {
+        const ratingDiff = (ratings[b.id] ?? 0) - (ratings[a.id] ?? 0);
+        if (ratingDiff !== 0) {
+          return ratingDiff;
+        }
+        if (b.popularityScore !== a.popularityScore) {
+          return b.popularityScore - a.popularityScore;
+        }
+        return a.orderScore - b.orderScore;
       }
+
+      if (sort === "name") {
+        return a.title.localeCompare(b.title, "fr");
+      }
+
       return a.orderScore - b.orderScore;
     });
+
     return sorted;
-  }, [items, ratings, sort]);
+  }, [items, ratings, sort, favoriteSet, resolvedImageIds]);
 
   const selectedExclusionsCount = excludePresets.length + excludeIngredients.length;
   const notesCount = ratedIds.length;
@@ -399,8 +427,24 @@ export function SmoothieExplorer({ meta }: SmoothieExplorerProps) {
           <SmoothieCard
             item={item}
             localRating={ratings[item.id] ?? 0}
+            isRated={(ratings[item.id] ?? 0) > 0}
             onRate={(rating) => setRating(item.id, rating)}
             isFavorite={favoriteSet.has(item.id)}
+            onImageStatusChange={(id, hasImage) => {
+              setResolvedImageIds((current) => {
+                const already = current.has(id);
+                if (already === hasImage) {
+                  return current;
+                }
+                const next = new Set(current);
+                if (hasImage) {
+                  next.add(id);
+                } else {
+                  next.delete(id);
+                }
+                return next;
+              });
+            }}
             onToggleFavorite={() => toggleFavorite(item.id)}
           />
         )}

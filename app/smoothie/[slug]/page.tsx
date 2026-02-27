@@ -46,7 +46,7 @@ export default async function SmoothieDetailPage({
                 {smoothie.tags.vegan ? "Vegan" : "Non vegan"}
               </span>
               <span className={`smTag ${smoothie.tags.lactose ? "smTagWarn" : ""}`}>
-                {smoothie.tags.lactose ? "Contient lactose" : "Sans lactose détecté"}
+                {smoothie.tags.lactose ? "Contient lactose" : "Sans lactose"}
               </span>
               {smoothie.tags.nuts ? <span className="smTag smTagWarn">Fruits à coque</span> : null}
               {smoothie.tags.peanut ? <span className="smTag smTagWarn">Arachide</span> : null}

@@ -57,7 +57,7 @@ function buildCacheKey(id: string, title: string, tags: string[]) {
   return `${id}|${title.trim().toLowerCase()}|${normalizedTags.join(",")}`;
 }
 
-async function fetchSuggestedImage(title: string, tags: string[]) {
+async function fetchSuggestedImage(title: string, tags: string[], forceRefresh = false) {
   const params = new URLSearchParams();
   params.set("title", title);
   const cleanTags = tags.map((entry) => entry.trim()).filter(Boolean).slice(0, 8);
@@ -65,6 +65,9 @@ async function fetchSuggestedImage(title: string, tags: string[]) {
     params.set("tags", cleanTags.join(","));
   }
   params.set("limit", "1");
+  if (forceRefresh) {
+    params.set("refresh", "1");
+  }
 
   const response = await fetch(`/api/image-suggestions?${params.toString()}`, {
     method: "GET"
@@ -110,7 +113,13 @@ export function useSuggestedImage({
 
     const pending =
       inFlight.get(key) ??
-      enqueueRequest(() => fetchSuggestedImage(title, tags))
+      enqueueRequest(async () => {
+        const first = await fetchSuggestedImage(title, tags, false);
+        if (first) {
+          return first;
+        }
+        return fetchSuggestedImage(title, tags, true);
+      })
         .then((url) => {
           suggestionCache.set(key, url);
           return url;
