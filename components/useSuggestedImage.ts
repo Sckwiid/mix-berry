@@ -10,6 +10,7 @@ interface UseSuggestedImageParams {
   tags: string[];
   imageUrl: string | null;
   enabled?: boolean;
+  refreshOnMiss?: boolean;
 }
 
 interface UseSuggestedImageResult {
@@ -88,7 +89,8 @@ export function useSuggestedImage({
   title,
   tags,
   imageUrl,
-  enabled = true
+  enabled = true,
+  refreshOnMiss = false
 }: UseSuggestedImageParams): UseSuggestedImageResult {
   const key = useMemo(() => buildCacheKey(id, title, tags), [id, title, tags]);
   const [suggestedUrl, setSuggestedUrl] = useState<string | null>(null);
@@ -118,6 +120,9 @@ export function useSuggestedImage({
         if (first) {
           return first;
         }
+        if (!refreshOnMiss) {
+          return null;
+        }
         return fetchSuggestedImage(title, tags, true);
       })
         .then((url) => {
@@ -145,7 +150,7 @@ export function useSuggestedImage({
     return () => {
       active = false;
     };
-  }, [enabled, imageUrl, key, tags, title]);
+  }, [enabled, imageUrl, key, refreshOnMiss, tags, title]);
 
   if (imageUrl) {
     return {

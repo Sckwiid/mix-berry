@@ -23,7 +23,8 @@ export function RecipeHeroMedia({ id, title, ingredients, imageUrl }: RecipeHero
     title,
     tags: ingredients,
     imageUrl,
-    enabled: true
+    enabled: true,
+    refreshOnMiss: true
   });
 
   const badgeLabel =

@@ -69,7 +69,8 @@ export function SmoothieCard({
     title: item.title,
     tags: item.ingredients,
     imageUrl: item.imageUrl,
-    enabled: true
+    enabled: true,
+    refreshOnMiss: false
   });
 
   const primaryTag = pickLabel(item);

@@ -56,7 +56,7 @@ const CACHE_TTL_SECONDS = Math.max(
 const EMPTY_CACHE_TTL_SECONDS = Math.min(CACHE_TTL_SECONDS, 60 * 60 * 6);
 const DEFAULT_LIMIT = 6;
 const MAX_LIMIT = 10;
-const FETCH_TIMEOUT_MS = 8000;
+const FETCH_TIMEOUT_MS = 4500;
 const CACHE_SEED_PATH = path.join(process.cwd(), "data", "image-suggestions-cache.json");
 const CACHE_RUNTIME_PATH = process.env.IMAGE_CACHE_PATH?.trim() || path.join("/tmp", "smoothies-image-suggestions-cache.json");
 
@@ -469,14 +469,20 @@ async function fetchProviderResults(query: string, limit: number) {
     { provider: "unsplash", fetcher: fetchFromUnsplash }
   ];
 
+  const providerResults = await Promise.all(
+    providers.map(async (entry) => ({
+      provider: entry.provider,
+      items: await entry.fetcher(query, limit)
+    }))
+  );
+
   const providersUsed: ImageProvider[] = [];
   let combined: ImageSuggestion[] = [];
 
-  for (const entry of providers) {
-    const items = await entry.fetcher(query, limit);
-    if (items.length > 0) {
+  for (const entry of providerResults) {
+    if (entry.items.length > 0) {
       providersUsed.push(entry.provider);
-      combined = combined.concat(items);
+      combined = combined.concat(entry.items);
       if (combined.length >= limit) {
         break;
       }

@@ -190,6 +190,7 @@ export function SmoothieExplorer({ meta }: SmoothieExplorerProps) {
 
   const displayItems = useMemo(() => {
     const sorted = [...items];
+    const normalizedRandom = (item: SmoothieListItem) => item.orderScore / 4_294_967_295;
     const getPriorityBoost = (item: SmoothieListItem) => {
       let boost = 0;
       if (item.hasImage || resolvedImageIds.has(item.id)) {
@@ -206,12 +207,11 @@ export function SmoothieExplorer({ meta }: SmoothieExplorerProps) {
     };
 
     sorted.sort((a, b) => {
-      const priorityDiff = getPriorityBoost(b) - getPriorityBoost(a);
-      if (priorityDiff !== 0) {
-        return priorityDiff;
-      }
-
       if (sort === "rating") {
+        const priorityDiff = getPriorityBoost(b) - getPriorityBoost(a);
+        if (priorityDiff !== 0) {
+          return priorityDiff;
+        }
         const ratingDiff = (ratings[b.id] ?? 0) - (ratings[a.id] ?? 0);
         if (ratingDiff !== 0) {
           return ratingDiff;
@@ -226,6 +226,12 @@ export function SmoothieExplorer({ meta }: SmoothieExplorerProps) {
         return a.title.localeCompare(b.title, "fr");
       }
 
+      const aWeighted = normalizedRandom(a) - getPriorityBoost(a) * 0.00065;
+      const bWeighted = normalizedRandom(b) - getPriorityBoost(b) * 0.00065;
+      const weightedDiff = aWeighted - bWeighted;
+      if (weightedDiff !== 0) {
+        return weightedDiff;
+      }
       return a.orderScore - b.orderScore;
     });
 
